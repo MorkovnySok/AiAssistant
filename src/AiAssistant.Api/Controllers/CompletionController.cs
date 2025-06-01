@@ -17,6 +17,12 @@ public class CompletionController : ControllerBase
         _vectorStore = vectorStore;
     }
 
+    [HttpGet("test")]
+    public string GetTest()
+    {
+        return "Hello World";
+    }
+    
     [HttpPost]
     public async Task<IActionResult> GetCompletion(
         [FromBody] CompletionRequest request,
