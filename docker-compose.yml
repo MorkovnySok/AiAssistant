@@ -10,7 +10,7 @@ services:
       - "5001:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - Ollama__BaseUrl=http://ollama:11434
+      - Ollama__BaseUrl=http://localhost:11434
       - Qdrant__Host=qdrant
       - Qdrant__GrpcPort=6334
     depends_on:

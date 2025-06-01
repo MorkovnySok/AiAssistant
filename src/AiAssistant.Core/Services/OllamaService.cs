@@ -8,30 +8,37 @@ namespace AiAssistant.Core.Services;
 public class OllamaService : ILLMService
 {
     private readonly HttpClient _httpClient;
-    private string _currentModel = "llama2";
+    private string _currentModel = "deepseek-r1:8b";
 
     public OllamaService(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
 
-    public async Task<string> GetCompletionAsync(CompletionRequest request, CancellationToken cancellationToken = default)
+    public async Task<string> GetCompletionAsync(
+        CompletionRequest request,
+        CancellationToken cancellationToken = default
+    )
     {
-        var model = request.ModelConfig?.ModelName ?? _currentModel;
-        var endpoint = request.ModelConfig?.EndpointUrl ?? "http://localhost:11434";
+        var model = _currentModel;
+        var endpoint = "http://localhost:11434";
 
         var requestData = new
         {
-            model = model,
+            model,
             prompt = request.Prompt,
             stream = false,
-            options = request.ModelConfig?.Parameters ?? new Dictionary<string, string>()
         };
 
         var response = await _httpClient.PostAsync(
             $"{endpoint}/api/generate",
-            new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json"),
-            cancellationToken);
+            new StringContent(
+                JsonSerializer.Serialize(requestData),
+                Encoding.UTF8,
+                "application/json"
+            ),
+            cancellationToken
+        );
 
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -40,24 +47,28 @@ public class OllamaService : ILLMService
         return result?.Response ?? string.Empty;
     }
 
-    public async Task<float[]> GenerateEmbeddingsAsync(string text, CancellationToken cancellationToken = default)
+    public async Task<float[]> GenerateEmbeddingsAsync(
+        string text,
+        CancellationToken cancellationToken = default
+    )
     {
-        var requestData = new
-        {
-            model = _currentModel,
-            prompt = text
-        };
+        var requestData = new { model = _currentModel, prompt = text };
 
         var response = await _httpClient.PostAsync(
             "http://localhost:11434/api/embeddings",
-            new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json"),
-            cancellationToken);
+            new StringContent(
+                JsonSerializer.Serialize(requestData),
+                Encoding.UTF8,
+                "application/json"
+            ),
+            cancellationToken
+        );
 
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var result = JsonSerializer.Deserialize<OllamaEmbeddingResponse>(content);
 
-        return result?.Embedding ?? Array.Empty<float>();
+        return result?.Embedding ?? [];
     }
 
     public Task SwitchModelAsync(string modelName, CancellationToken cancellationToken = default)
@@ -73,6 +84,6 @@ public class OllamaService : ILLMService
 
     private class OllamaEmbeddingResponse
     {
-        public float[] Embedding { get; set; } = Array.Empty<float>();
+        public float[] Embedding { get; set; } = [];
     }
-} 
+}
