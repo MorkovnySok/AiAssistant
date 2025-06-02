@@ -1,6 +1,7 @@
 using AiAssistant.Core.Interfaces;
 using AiAssistant.Core.Services;
 using OllamaSharp;
+using OllamaSharp.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,20 @@ if (existingModels.All(x => x.Name != model))
         }
         i++;
     }
+}
+
+await foreach (
+    var i in ollamaClient.GenerateAsync(
+        new GenerateRequest()
+        {
+            Prompt = "this is a warm up request",
+            Stream = false,
+            Model = model,
+        }
+    )
+)
+{
+    Console.WriteLine("Warm up request generated: " + i!.Response);
 }
 
 builder.Services.AddTransient<ILLMService, OllamaService>(x => new OllamaService(

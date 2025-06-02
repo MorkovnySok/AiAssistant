@@ -20,6 +20,10 @@ services:
       - "11434:11434"
     volumes:
       - ./ollama_data:/root/.ollama
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OLLAMA_KEEP_ALIVE=-1
 
   qdrant:
     image: qdrant/qdrant:latest
