@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.54.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.54.0" />
+    <PackageReference Include="OllamaSharp" Version="5.2.2" />
     <PackageReference Include="Qdrant.Client" Version="1.14.0" />
   </ItemGroup>
 

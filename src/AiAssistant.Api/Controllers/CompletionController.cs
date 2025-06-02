@@ -58,7 +58,7 @@ public class CompletionController : ControllerBase
         CancellationToken cancellationToken
     )
     {
-        await _llmService.SwitchModelAsync(modelName, cancellationToken);
+        await _llmService.SwitchModelAsync(modelName);
         return Ok(new { message = $"Switched to model: {modelName}" });
     }
 }

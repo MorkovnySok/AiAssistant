@@ -1,18 +1,25 @@
-using System.Text;
-using System.Text.Json;
 using AiAssistant.Core.Interfaces;
 using AiAssistant.Core.Models;
+using OllamaSharp;
+using OllamaSharp.Models;
+using System.Text;
 
 namespace AiAssistant.Core.Services;
 
 public class OllamaService : ILLMService
 {
-    private readonly HttpClient _httpClient;
+    private readonly OllamaApiClient _ollamaClient;
     private string _currentModel = "deepseek-r1:8b";
 
-    public OllamaService(HttpClient httpClient)
+    public OllamaService()
     {
-        _httpClient = httpClient;
+        _ollamaClient = new OllamaApiClient(new Uri("http://localhost:11434"));
+        _ollamaClient.SelectedModel =  _currentModel;
+        var models = _ollamaClient.ListLocalModelsAsync(CancellationToken.None).Result;
+        if (models.All(x => x.Name != _currentModel))
+        {
+            _ollamaClient.PullModelAsync(new PullModelRequest() { Insecure = true, Model = _currentModel });
+        }
     }
 
     public async Task<string> GetCompletionAsync(
@@ -20,31 +27,24 @@ public class OllamaService : ILLMService
         CancellationToken cancellationToken = default
     )
     {
-        var model = _currentModel;
-        var endpoint = "http://localhost:11434";
-
-        var requestData = new
+        var completionRequest = new GenerateRequest
         {
-            model,
-            prompt = request.Prompt,
-            stream = false,
+            Model = _currentModel,
+            Prompt = request.Prompt,
+            Stream = true
         };
 
-        var response = await _httpClient.PostAsync(
-            $"{endpoint}/api/generate",
-            new StringContent(
-                JsonSerializer.Serialize(requestData),
-                Encoding.UTF8,
-                "application/json"
-            ),
-            cancellationToken
-        );
+        var responseBuilder = new StringBuilder();
 
-        response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var result = JsonSerializer.Deserialize<OllamaResponse>(content);
+        await foreach (var stream in _ollamaClient.GenerateAsync(completionRequest, cancellationToken))
+        {
+            if (stream != null && !string.IsNullOrEmpty(stream.Response))
+            {
+                responseBuilder.Append(stream.Response);
+            }
+        }
 
-        return result?.Response ?? string.Empty;
+        return responseBuilder.ToString();
     }
 
     public async Task<float[]> GenerateEmbeddingsAsync(
@@ -52,38 +52,13 @@ public class OllamaService : ILLMService
         CancellationToken cancellationToken = default
     )
     {
-        var requestData = new { model = _currentModel, prompt = text };
-
-        var response = await _httpClient.PostAsync(
-            "http://localhost:11434/api/embeddings",
-            new StringContent(
-                JsonSerializer.Serialize(requestData),
-                Encoding.UTF8,
-                "application/json"
-            ),
-            cancellationToken
-        );
-
-        response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var result = JsonSerializer.Deserialize<OllamaEmbeddingResponse>(content);
-
-        return result?.Embedding ?? [];
+        var response = await _ollamaClient.EmbedAsync(text, cancellationToken);
+        return response.Embeddings.First();
     }
-
-    public Task SwitchModelAsync(string modelName, CancellationToken cancellationToken = default)
+    
+    public Task SwitchModelAsync(string modelName)
     {
         _currentModel = modelName;
         return Task.CompletedTask;
-    }
-
-    private class OllamaResponse
-    {
-        public string Response { get; set; } = string.Empty;
-    }
-
-    private class OllamaEmbeddingResponse
-    {
-        public float[] Embedding { get; set; } = [];
     }
 }
