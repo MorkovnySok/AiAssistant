@@ -1,25 +1,21 @@
+using System.Text;
 using AiAssistant.Core.Interfaces;
 using AiAssistant.Core.Models;
 using OllamaSharp;
 using OllamaSharp.Models;
-using System.Text;
 
 namespace AiAssistant.Core.Services;
 
 public class OllamaService : ILLMService
 {
     private readonly OllamaApiClient _ollamaClient;
-    private string _currentModel = "deepseek-r1:8b";
+    private string _currentModel;
 
-    public OllamaService()
+    public OllamaService(string currentModel, string ollamaApi)
     {
-        _ollamaClient = new OllamaApiClient(new Uri("http://localhost:11434"));
-        _ollamaClient.SelectedModel =  _currentModel;
-        var models = _ollamaClient.ListLocalModelsAsync(CancellationToken.None).Result;
-        if (models.All(x => x.Name != _currentModel))
-        {
-            _ollamaClient.PullModelAsync(new PullModelRequest() { Insecure = true, Model = _currentModel });
-        }
+        _currentModel = currentModel;
+        _ollamaClient = new OllamaApiClient(new Uri(ollamaApi));
+        _ollamaClient.SelectedModel = _currentModel;
     }
 
     public async Task<string> GetCompletionAsync(
@@ -31,12 +27,14 @@ public class OllamaService : ILLMService
         {
             Model = _currentModel,
             Prompt = request.Prompt,
-            Stream = true
+            Stream = true,
         };
 
         var responseBuilder = new StringBuilder();
 
-        await foreach (var stream in _ollamaClient.GenerateAsync(completionRequest, cancellationToken))
+        await foreach (
+            var stream in _ollamaClient.GenerateAsync(completionRequest, cancellationToken)
+        )
         {
             if (stream != null && !string.IsNullOrEmpty(stream.Response))
             {
@@ -55,7 +53,7 @@ public class OllamaService : ILLMService
         var response = await _ollamaClient.EmbedAsync(text, cancellationToken);
         return response.Embeddings.First();
     }
-    
+
     public Task SwitchModelAsync(string modelName)
     {
         _currentModel = modelName;
