@@ -22,7 +22,7 @@ public class CompletionController : ControllerBase
     {
         return "Hello World";
     }
-    
+
     [HttpPost]
     public async Task<IActionResult> GetCompletion(
         [FromBody] CompletionRequest request,
@@ -50,15 +50,5 @@ public class CompletionController : ControllerBase
 
         var response = await _llmService.GetCompletionAsync(request, cancellationToken);
         return Ok(new { response });
-    }
-
-    [HttpPost("switch-model")]
-    public async Task<IActionResult> SwitchModel(
-        [FromBody] string modelName,
-        CancellationToken cancellationToken
-    )
-    {
-        await _llmService.SwitchModelAsync(modelName);
-        return Ok(new { message = $"Switched to model: {modelName}" });
     }
 }

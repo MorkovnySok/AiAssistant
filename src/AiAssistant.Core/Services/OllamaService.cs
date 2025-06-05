@@ -9,7 +9,7 @@ namespace AiAssistant.Core.Services;
 public class OllamaService : ILLMService
 {
     private readonly OllamaApiClient _ollamaClient;
-    private string _currentModel;
+    private readonly string _currentModel;
 
     public OllamaService(string currentModel, string ollamaApi)
     {
@@ -52,11 +52,5 @@ public class OllamaService : ILLMService
     {
         var response = await _ollamaClient.EmbedAsync(text, cancellationToken);
         return response.Embeddings.First();
-    }
-
-    public Task SwitchModelAsync(string modelName)
-    {
-        _currentModel = modelName;
-        return Task.CompletedTask;
     }
 }

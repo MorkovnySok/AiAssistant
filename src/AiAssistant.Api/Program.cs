@@ -1,7 +1,6 @@
+using AiAssistant.Api.Startup;
 using AiAssistant.Core.Interfaces;
 using AiAssistant.Core.Services;
-using OllamaSharp;
-using OllamaSharp.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,48 +8,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure HttpClient for Ollama
-var model = builder.Configuration["Ollama:DefaultModel"] ?? "deepseek-r1:8b";
-var ollamaServer = builder.Configuration["Ollama:BaseUrl"] ?? "http://ollama:11434";
-Console.WriteLine("Ollama model is " + model);
-Console.WriteLine("Ollama is running at " + ollamaServer);
-var ollamaClient = new OllamaApiClient(ollamaServer);
-var existingModels = await ollamaClient.ListLocalModelsAsync(CancellationToken.None);
-if (existingModels.All(x => x.Name != model))
+var provider = builder.Configuration["Provider"];
+switch (provider?.ToLowerInvariant())
 {
-    Console.WriteLine("Ollama model is not pulled, starting to pull...");
-    var i = 0;
-    await foreach (var status in ollamaClient.PullModelAsync(model, CancellationToken.None))
-    {
-        if (i == 20)
-        {
-            Console.WriteLine(
-                $"{status!.Percent}% {status.Status}. Pulled {status.Completed / 1024 / 1024} mb out of {status.Total / 1024 / 1024} mb"
-            );
-            i = 0;
-        }
-        i++;
-    }
+    case "openai":
+        builder.Services.AddSingleton<ILLMService, OpenAiService>();
+        break;
+    case "local"
+    or "ollama":
+    default:
+        var ollamaService = await new OllamaBuilder(builder.Configuration).SetupOllamaService();
+        builder.Services.AddSingleton(ollamaService);
+        break;
 }
-
-await foreach (
-    var i in ollamaClient.GenerateAsync(
-        new GenerateRequest()
-        {
-            Prompt = "this is a warm up request",
-            Stream = false,
-            Model = model,
-        }
-    )
-)
-{
-    Console.WriteLine("Warm up request generated: " + i!.Response);
-}
-
-builder.Services.AddTransient<ILLMService, OllamaService>(x => new OllamaService(
-    model,
-    ollamaServer
-));
 
 // Configure Qdrant
 builder.Services.AddSingleton<IVectorStore>(sp => new QdrantVectorStore(
