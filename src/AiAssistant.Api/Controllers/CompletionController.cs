@@ -17,12 +17,6 @@ public class CompletionController : ControllerBase
         _vectorStore = vectorStore;
     }
 
-    [HttpGet("test")]
-    public string GetTest()
-    {
-        return "Hello World";
-    }
-
     [HttpPost]
     public async Task<IActionResult> GetCompletion(
         [FromBody] CompletionRequest request,
@@ -45,7 +39,11 @@ public class CompletionController : ControllerBase
                 "\n\n",
                 similarContexts.Select(x => x.Metadata["text"])
             );
-            request.Prompt = $"Context:\n{contextPrompt}\n\nQuestion: {request.Prompt}\nAnswer:";
+            request.Prompt =
+                $"/no-think. Only answer in English or Russian depending of the language of the Question"
+                + $"Context:\n{contextPrompt}\n\n"
+                + $"Question: {request.Prompt}\n"
+                + $"Answer:";
         }
 
         var response = await _llmService.GetCompletionAsync(request, cancellationToken);

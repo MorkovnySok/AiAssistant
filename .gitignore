@@ -6,3 +6,6 @@ qdrant_data
 ollama_data
 .vs
 *.csproj.user
+
+# used to setup local environment variables
+.env 

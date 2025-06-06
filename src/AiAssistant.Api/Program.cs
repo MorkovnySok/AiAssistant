@@ -18,7 +18,7 @@ switch (provider?.ToLowerInvariant())
     or "ollama":
     default:
         var ollamaService = await new OllamaBuilder(builder.Configuration).SetupOllamaService();
-        builder.Services.AddSingleton(ollamaService);
+        builder.Services.AddSingleton<ILLMService>(ollamaService);
         break;
 }
 
