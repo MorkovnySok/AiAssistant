@@ -7,7 +7,7 @@ services:
       - "8090:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - Ollama__BaseUrl=http://ollama:11434
+      - Ollama__BaseUrl=http://localhost:11434
       - Qdrant__Host=qdrant
       - Qdrant__GrpcPort=6334
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -17,13 +17,13 @@ services:
       - ollama
       - qdrant
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
+#  ollama:
+#    image: ollama/ollama:latest
+#    ports:
+#      - "11434:11434"
+#    volumes:
+#      - ollama_data:/root/.ollama
+  
   qdrant:
     image: qdrant/qdrant:latest
     ports:
@@ -32,5 +32,5 @@ services:
     volumes:
       - ./qdrant_data:/qdrant/storage
 
-volumes:
-  ollama_data: 
+#volumes:
+#  ollama_data: 
