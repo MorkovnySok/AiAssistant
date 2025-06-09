@@ -16,29 +16,59 @@ public class VectorController : ControllerBase
         _vectorStore = vectorStore;
     }
 
-    [HttpPost("store")]
-    public async Task<IActionResult> StoreVector([FromBody] StoreVectorRequest request, CancellationToken cancellationToken)
+    public IEnumerable<string> ChunkText(string text, int maxWords = 256, int overlap = 90)
     {
-        var embeddings = await _llmService.GenerateEmbeddingsAsync(request.Text, cancellationToken);
-        
-        await _vectorStore.StoreVectorAsync(
-            request.Id ?? Guid.NewGuid().ToString(),
-            embeddings,
-            new Dictionary<string, string> { { "text", request.Text } },
-            cancellationToken);
+        var words = text.Split(' ');
+        for (int i = 0; i < words.Length; i += maxWords - overlap)
+        {
+            yield return string.Join(" ", words.Skip(i).Take(maxWords));
+            if (i + maxWords >= words.Length)
+                break;
+        }
+    }
 
-        return Ok(new { message = "Vector stored successfully" });
+    [HttpPost("store")]
+    public async Task<IActionResult> StoreVector(
+        [FromBody] StoreVectorRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var chunks = ChunkText(request.Text);
+        foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
+        {
+            var embeddings = await _llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
+            await _vectorStore.StoreVectorAsync(
+                $"{request.Id}_{index}", // or use a hash
+                embeddings,
+                new Dictionary<string, string>
+                {
+                    { "text", chunk },
+                    { "parentId", request.Id ?? "" },
+                    { "chunkIndex", index.ToString() },
+                },
+                cancellationToken
+            );
+        }
+
+        return Ok();
     }
 
     [HttpPost("search")]
-    public async Task<IActionResult> SearchSimilar([FromBody] SearchRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> SearchSimilar(
+        [FromBody] SearchRequest request,
+        CancellationToken cancellationToken
+    )
     {
-        var embeddings = await _llmService.GenerateEmbeddingsAsync(request.Query, cancellationToken);
+        var embeddings = await _llmService.GenerateEmbeddingsAsync(
+            request.Query,
+            cancellationToken
+        );
         var results = await _vectorStore.SearchSimilarAsync(
             embeddings,
             request.Limit ?? 5,
             request.ScoreThreshold ?? 0.7f,
-            cancellationToken);
+            cancellationToken
+        );
 
         return Ok(results);
     }
@@ -62,4 +92,4 @@ public class SearchRequest
     public required string Query { get; set; }
     public int? Limit { get; set; }
     public float? ScoreThreshold { get; set; }
-} 
+}
