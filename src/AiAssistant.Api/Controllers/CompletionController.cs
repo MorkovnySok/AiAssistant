@@ -23,7 +23,7 @@ public class CompletionController : ControllerBase
         CancellationToken cancellationToken
     )
     {
-        if (request.Context?.Count > 0)
+        if (request.UseMemory)
         {
             var embeddings = await _llmService.GenerateEmbeddingsAsync(
                 request.Prompt,
@@ -39,11 +39,14 @@ public class CompletionController : ControllerBase
                 "\n\n",
                 similarContexts.Select(x => x.Metadata["text"])
             );
-            request.Prompt =
-                $"/no-think. Only answer in English or Russian depending of the language of the Question"
-                + $"Context:\n{contextPrompt}\n\n"
-                + $"Question: {request.Prompt}\n"
-                + $"Answer:";
+            request.Prompt = $"""
+                 /nothink. 
+                Only answer in English or Russian depending of the language of the Question!
+                Context:
+                {contextPrompt}
+                Question: {request.Prompt}
+                Answer: 
+                """;
         }
 
         var response = await _llmService.GetCompletionAsync(request, cancellationToken);

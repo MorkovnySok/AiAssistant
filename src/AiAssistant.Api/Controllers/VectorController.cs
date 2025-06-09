@@ -38,7 +38,7 @@ public class VectorController : ControllerBase
         {
             var embeddings = await _llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
             await _vectorStore.StoreVectorAsync(
-                $"{request.Id}_{index}", // or use a hash
+                request.Id ?? Guid.NewGuid().ToString(), // or use a hash
                 embeddings,
                 new Dictionary<string, string>
                 {
