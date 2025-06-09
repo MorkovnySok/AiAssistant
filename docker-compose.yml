@@ -7,14 +7,14 @@ services:
       - "8090:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - Ollama__BaseUrl=http://localhost:11434
+      - Ollama__BaseUrl=http://host.docker.internal:11434
       - Qdrant__Host=qdrant
       - Qdrant__GrpcPort=6334
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_ENDPOINT=${OPENAI_ENDPOINT}
       - OPENAI_MODEL=${OPENAI_MODEL}
     depends_on:
-      - ollama
+#      - ollama
       - qdrant
 
 #  ollama:

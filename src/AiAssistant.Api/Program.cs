@@ -28,6 +28,7 @@ builder.Services.AddSingleton<IVectorStore>(sp => new QdrantVectorStore(
     int.Parse(builder.Configuration["Qdrant:GrpcPort"] ?? "6334"),
     builder.Configuration["Qdrant:DefaultCollection"] ?? "ai_assistant"
 ));
+builder.Services.AddTransient<IChunker, Chunker>();
 
 var app = builder.Build();
 

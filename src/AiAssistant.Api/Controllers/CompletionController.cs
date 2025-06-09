@@ -36,12 +36,11 @@ public class CompletionController : ControllerBase
             );
 
             var contextPrompt = string.Join(
-                "\n\n",
+                "\n---------\n",
                 similarContexts.Select(x => x.Metadata["text"])
             );
             request.Prompt = $"""
-                 /nothink. 
-                Only answer in English or Russian depending of the language of the Question!
+                Only answer in English or Russian depending on the language of the Question!
                 Context:
                 {contextPrompt}
                 Question: {request.Prompt}

@@ -35,7 +35,8 @@ public class OllamaBuilder(ConfigurationManager configuration)
             var i in ollamaClient.GenerateAsync(
                 new GenerateRequest()
                 {
-                    Prompt = "/nothink this is a warm up request",
+                    Prompt =
+                        "This is a warmup request to start ollama, DO NOT generate a lot of tokens DO NOT think too much, just say 'Whad up'",
                     Stream = false,
                     Model = model,
                 }

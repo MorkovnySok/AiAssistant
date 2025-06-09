@@ -38,6 +38,7 @@ public class OllamaService : ILLMService
         {
             if (stream != null && !string.IsNullOrEmpty(stream.Response))
             {
+                Console.Write(stream.Response);
                 responseBuilder.Append(stream.Response);
             }
         }

@@ -5,39 +5,20 @@ namespace AiAssistant.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class VectorController : ControllerBase
+public class VectorController(ILLMService llmService, IVectorStore vectorStore, IChunker chunker)
+    : ControllerBase
 {
-    private readonly ILLMService _llmService;
-    private readonly IVectorStore _vectorStore;
-
-    public VectorController(ILLMService llmService, IVectorStore vectorStore)
-    {
-        _llmService = llmService;
-        _vectorStore = vectorStore;
-    }
-
-    public IEnumerable<string> ChunkText(string text, int maxWords = 256, int overlap = 90)
-    {
-        var words = text.Split(' ');
-        for (int i = 0; i < words.Length; i += maxWords - overlap)
-        {
-            yield return string.Join(" ", words.Skip(i).Take(maxWords));
-            if (i + maxWords >= words.Length)
-                break;
-        }
-    }
-
     [HttpPost("store")]
     public async Task<IActionResult> StoreVector(
         [FromBody] StoreVectorRequest request,
         CancellationToken cancellationToken
     )
     {
-        var chunks = ChunkText(request.Text);
+        var chunks = chunker.ChunkText(request.Text);
         foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
         {
-            var embeddings = await _llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
-            await _vectorStore.StoreVectorAsync(
+            var embeddings = await llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
+            await vectorStore.StoreVectorAsync(
                 request.Id ?? Guid.NewGuid().ToString(), // or use a hash
                 embeddings,
                 new Dictionary<string, string>
@@ -59,11 +40,8 @@ public class VectorController : ControllerBase
         CancellationToken cancellationToken
     )
     {
-        var embeddings = await _llmService.GenerateEmbeddingsAsync(
-            request.Query,
-            cancellationToken
-        );
-        var results = await _vectorStore.SearchSimilarAsync(
+        var embeddings = await llmService.GenerateEmbeddingsAsync(request.Query, cancellationToken);
+        var results = await vectorStore.SearchSimilarAsync(
             embeddings,
             request.Limit ?? 5,
             request.ScoreThreshold ?? 0.7f,
@@ -76,7 +54,7 @@ public class VectorController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteVector(string id, CancellationToken cancellationToken)
     {
-        await _vectorStore.DeleteVectorAsync(id, cancellationToken);
+        await vectorStore.DeleteVectorAsync(id, cancellationToken);
         return Ok(new { message = "Vector deleted successfully" });
     }
 }
