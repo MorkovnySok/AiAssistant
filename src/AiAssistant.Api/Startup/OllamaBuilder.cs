@@ -36,7 +36,7 @@ public class OllamaBuilder(ConfigurationManager configuration)
                 new GenerateRequest()
                 {
                     Prompt =
-                        "This is a warmup request to start ollama, DO NOT generate a lot of tokens DO NOT think too much, just say 'Whad up'",
+                        "This is a warmup request to start ollama, DO NOT think too much, just say 'Whad up'",
                     Stream = false,
                     Model = model,
                 }
