@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleCrawler", "src\SimpleCrawler\SimpleCrawler.csproj", "{0D5BA199-4A94-4F23-955E-31F3E464A404}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,5 +33,9 @@ Global
 		{14E58CB2-C5BA-44BE-97EB-224B4D663841}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14E58CB2-C5BA-44BE-97EB-224B4D663841}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14E58CB2-C5BA-44BE-97EB-224B4D663841}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D5BA199-4A94-4F23-955E-31F3E464A404}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D5BA199-4A94-4F23-955E-31F3E464A404}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D5BA199-4A94-4F23-955E-31F3E464A404}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D5BA199-4A94-4F23-955E-31F3E464A404}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
