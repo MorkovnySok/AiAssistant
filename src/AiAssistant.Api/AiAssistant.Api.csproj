@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AiAssistant.Core\AiAssistant.Core.csproj" />
+    <ProjectReference Include="..\SimpleCrawler\SimpleCrawler.csproj" />
   </ItemGroup>
 </Project>

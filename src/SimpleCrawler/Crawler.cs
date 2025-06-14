@@ -6,7 +6,7 @@ using HtmlAgilityPack;
 
 namespace SimpleCrawler;
 
-public class DocumentationCrawler
+public class Crawler
 {
     private readonly HttpClient _httpClient;
     private readonly Uri _baseUri;
@@ -14,14 +14,14 @@ public class DocumentationCrawler
     private readonly HashSet<string> _visitedUrls = [];
     private readonly List<ParseResult> _documents = [];
     private readonly string _xpath;
-    private readonly string _authToken;
+    private readonly string? _authToken;
     private readonly string? _outputDirectory;
 
-    public DocumentationCrawler(
+    public Crawler(
         string baseUrl,
         string xpath,
-        string authToken,
-        string? outputDirectory
+        string? authToken = null,
+        string? outputDirectory = null
     )
     {
         _httpClient = new HttpClient(
@@ -127,7 +127,10 @@ public class DocumentationCrawler
         request.Headers.Add("Accept-Encoding", "gzip, deflate, br");
         request.Headers.Add("Connection", "keep-alive");
 
-        SetAuthorizationHeader(request, _authToken);
+        if (_authToken != null)
+        {
+            SetAuthorizationHeader(request, _authToken);
+        }
         return request;
     }
 

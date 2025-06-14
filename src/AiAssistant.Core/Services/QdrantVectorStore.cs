@@ -1,20 +1,12 @@
-using System.Collections.Generic;
 using AiAssistant.Core.Interfaces;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
 namespace AiAssistant.Core.Services;
 
-public class QdrantVectorStore : IVectorStore
+public class QdrantVectorStore(string host, int grpcPort, string storeCollectionName) : IVectorStore
 {
-    private readonly QdrantClient _client;
-    private readonly string _collectionName;
-
-    public QdrantVectorStore(string host, int grpcPort, string collectionName)
-    {
-        _client = new QdrantClient(host, grpcPort);
-        _collectionName = collectionName;
-    }
+    private readonly QdrantClient _client = new(host, grpcPort);
 
     public async Task StoreVectorAsync(
         string id,
@@ -23,9 +15,11 @@ public class QdrantVectorStore : IVectorStore
         CancellationToken cancellationToken = default
     )
     {
-        var point = new PointStruct { Id = new PointId { Uuid = id } };
-
-        point.Vectors = new Vectors { Vector = new Vector() { Data = { vector } } };
+        var point = new PointStruct
+        {
+            Id = new PointId { Uuid = id },
+            Vectors = new Vectors { Vector = new Vector() { Data = { vector } } },
+        };
 
         foreach (var kvp in metadata)
         {
@@ -33,7 +27,7 @@ public class QdrantVectorStore : IVectorStore
         }
 
         await _client.UpsertAsync(
-            _collectionName,
+            storeCollectionName,
             new List<PointStruct> { point },
             cancellationToken: cancellationToken
         );
@@ -47,7 +41,7 @@ public class QdrantVectorStore : IVectorStore
     )
     {
         var searchResult = await _client.SearchAsync(
-            _collectionName,
+            storeCollectionName,
             queryVector,
             limit: (uint)limit,
             cancellationToken: cancellationToken
@@ -62,7 +56,7 @@ public class QdrantVectorStore : IVectorStore
     public async Task DeleteVectorAsync(string id, CancellationToken cancellationToken = default)
     {
         await _client.DeleteAsync(
-            _collectionName,
+            storeCollectionName,
             ulong.Parse(id),
             cancellationToken: cancellationToken
         );
