@@ -74,4 +74,11 @@ public class VectorController(ILLMService llmService, IVectorStore vectorStore, 
         await vectorStore.DeleteVectorAsync(id, cancellationToken);
         return Ok(new { message = "Vector deleted successfully" });
     }
+
+    [HttpDelete("clear")]
+    public async Task<IActionResult> Clear()
+    {
+        await vectorStore.DeleteCollectionAsync();
+        return Ok();
+    }
 }
