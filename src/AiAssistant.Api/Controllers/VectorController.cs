@@ -84,6 +84,7 @@ public class VectorController(
     {
         var collectionName = config["Qdrant:DefaultCollection"] ?? "ai_assistant";
         await vectorStore.DeleteCollectionAsync(collectionName);
+        await vectorStore.CreateCollectionAsync(collectionName, 4096);
         return Ok();
     }
 }
