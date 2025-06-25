@@ -6,8 +6,12 @@ namespace AiAssistant.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class VectorController(ILLMService llmService, IVectorStore vectorStore, IChunker chunker)
-    : ControllerBase
+public class VectorController(
+    ILLMService llmService,
+    IVectorStore vectorStore,
+    IChunker chunker,
+    IConfiguration config
+) : ControllerBase
 {
     [HttpPost("store")]
     public async Task<IActionResult> StoreVector(
@@ -78,7 +82,8 @@ public class VectorController(ILLMService llmService, IVectorStore vectorStore, 
     [HttpDelete("clear")]
     public async Task<IActionResult> Clear()
     {
-        await vectorStore.DeleteCollectionAsync();
+        var collectionName = config["Qdrant:DefaultCollection"] ?? "ai_assistant";
+        await vectorStore.DeleteCollectionAsync(collectionName);
         return Ok();
     }
 }

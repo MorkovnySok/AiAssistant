@@ -89,4 +89,9 @@ public class QdrantVectorStore(string host, int grpcPort, string storeCollection
             cancellationToken: cancellationToken
         );
     }
+
+    public async Task DeleteCollectionAsync(string collectionName)
+    {
+        await _client.DeleteCollectionAsync(collectionName);
+    }
 }

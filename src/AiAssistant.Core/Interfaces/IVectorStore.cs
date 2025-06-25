@@ -24,5 +24,5 @@ public interface IVectorStore
         int vectorSize,
         CancellationToken cancellationToken = default
     );
-    Task DeleteCollectionAsync();
+    Task DeleteCollectionAsync(string collectionName);
 }
