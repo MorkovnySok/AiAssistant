@@ -19,7 +19,7 @@ public class VectorController(
         CancellationToken cancellationToken
     )
     {
-        var chunks = chunker.ChunkText(request.Text);
+        var chunks = chunker.ChunkText(request.Text).ToList();
         foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
         {
             var embeddings = await llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
@@ -36,7 +36,23 @@ public class VectorController(
             );
         }
 
-        return Ok();
+        return Ok(new { Chunks = chunks.Count });
+    }
+
+    [HttpPost("upload")]
+    public async Task<IActionResult> UploadTextFile(IFormFile? file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        using var reader = new StreamReader(file.OpenReadStream());
+        var fileContent = await reader.ReadToEndAsync();
+        return await StoreVector(
+            new StoreVectorRequest { Text = fileContent },
+            CancellationToken.None
+        );
     }
 
     [HttpPost("crawl")]
