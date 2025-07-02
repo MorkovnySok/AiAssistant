@@ -1,11 +1,25 @@
-
 <div class="chat-container">
   <h2>AI Chat</h2>
+  <div class="chat-options">
+    <label>
+      <input type="checkbox" [(ngModel)]="useMemory" />
+      Use memory (context)
+    </label>
+  </div>
   <div class="chat-messages">
     <div *ngFor="let msg of messages" [ngClass]="'msg-' + msg.sender.toLowerCase()">
       <span class="msg-sender">{{ msg.sender }}:</span>
-      <span class="msg-text">{{ msg.message }}</span>
+      <span class="msg-text" *ngIf="msg.sender !== 'Assistant'">{{ msg.message }}</span>
+      <span class="msg-text msg-answer" *ngIf="msg.sender === 'Assistant'" [innerHTML]="formatAssistantMessage(msg.message)"></span>
       <span class="msg-time">{{ msg.time }}</span>
+      <ng-container *ngIf="msg.sender === 'Assistant' && msg.thinking">
+        <button class="think-toggle" (click)="toggleThinking(msg)">
+          {{ msg.showThinking ? 'Hide thinking' : 'Show thinking' }}
+        </button>
+        <div *ngIf="msg.showThinking" class="msg-thinking">
+          <pre>{{ msg.thinking }}</pre>
+        </div>
+      </ng-container>
     </div>
   </div>
   <form class="chat-input-row" (ngSubmit)="sendMessage()">
