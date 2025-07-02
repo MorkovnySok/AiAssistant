@@ -30,6 +30,18 @@ builder.Services.AddSingleton<IVectorStore>(sp => new QdrantVectorStore(
 ));
 builder.Services.AddTransient<IChunker, Chunker>();
 
+var corsOrigins = builder.Configuration.GetSection("CorsOrigins").Get<string[]>() ?? new string[0];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowConfiguredOrigins",
+        policy => policy
+            .WithOrigins(corsOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -54,5 +66,7 @@ using (var scope = app.Services.CreateScope())
         await vectorStore.CreateCollectionAsync(collectionName, vectorSize: 4096); // Adjust vector size based on your model
     }
 }
+
+app.UseCors("AllowConfiguredOrigins");
 
 app.Run();
