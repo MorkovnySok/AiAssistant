@@ -1,16 +1,31 @@
 <div class="chat-container">
   <h2>AI Chat</h2>
-  <div class="chat-options">
+  <div class="chat-options" [formGroup]="crawlForm">
     <label>
-      <input type="checkbox" [(ngModel)]="useMemory" />
+      <input type="checkbox" formControlName="useMemory" />
       Use memory (context)
     </label>
+    <div class="crawl-options">
+      <div>
+        <label>Crawl Url</label>
+        <input type="text" formControlName="url" />
+      </div>
+      <div>
+        <label>xpath</label>
+        <input type="text" formControlName="xpath" />
+      </div>
+      <div>
+        <label>Auth info</label>
+        <input type="text" formControlName="authentication" />
+      </div>
+    </div>
   </div>
   <div class="chat-messages">
     <div *ngFor="let msg of messages" [ngClass]="'msg-' + msg.sender.toLowerCase()">
       <span class="msg-sender">{{ msg.sender }}:</span>
       <span class="msg-text" *ngIf="msg.sender !== 'Assistant'">{{ msg.message }}</span>
-      <span class="msg-text msg-answer" *ngIf="msg.sender === 'Assistant'" [innerHTML]="formatAssistantMessage(msg.message)"></span>
+      <span class="msg-text msg-answer" *ngIf="msg.sender === 'Assistant'"
+        [innerHTML]="formatAssistantMessage(msg.message)"></span>
       <span class="msg-time">{{ msg.time }}</span>
       <ng-container *ngIf="msg.sender === 'Assistant' && msg.thinking">
         <button class="think-toggle" (click)="toggleThinking(msg)">
@@ -23,15 +38,8 @@
     </div>
   </div>
   <form class="chat-input-row" (ngSubmit)="sendMessage()">
-    <input
-      type="text"
-      [(ngModel)]="userInput"
-      name="userInput"
-      [disabled]="loading"
-      placeholder="Type your message..."
-      autocomplete="off"
-      class="chat-input"
-    />
+    <input type="text" [(ngModel)]="userInput" name="userInput" [disabled]="loading" placeholder="Type your message..."
+      autocomplete="off" class="chat-input" />
     <button type="submit" [disabled]="loading || !userInput.trim()" class="chat-send-btn">Send</button>
   </form>
   <div *ngIf="loading" class="chat-loading">Assistant is typing...</div>

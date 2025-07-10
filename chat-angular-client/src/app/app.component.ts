@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, Validators } from '@angular/forms';
 import { environment } from '../environments/environment';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
@@ -25,12 +25,18 @@ export class AppComponent {
   messages: ChatMessage[] = [];
   userInput = '';
   loading = false;
-  useMemory = true;
+  crawlForm
 
-  constructor(private http: HttpClient, private sanitizer: DomSanitizer) {}
+  constructor(private http: HttpClient, private sanitizer: DomSanitizer, private fb: FormBuilder) {
+    this.crawlForm = fb.group({
+      url: fb.nonNullable.control('', Validators.required),
+      xpath: fb.nonNullable.control('', Validators.required),
+      authentication: [''],
+      useMemory: fb.nonNullable.control(true)
+    })
+  }
 
   async sendMessage() {
-    console.log('sendMessage called');
     const input = this.userInput.trim();
     if (!input) return;
     this.messages.push({ sender: 'User', message: input, time: new Date().toLocaleTimeString() });
@@ -43,7 +49,7 @@ export class AppComponent {
         .join('\n');
       // Do NOT append User: ${input} again!
       const prompt = `${history}\nAssistant:`;
-      const res: any = await this.http.post(environment.apiUrl + '/completion', { prompt, useMemory: this.useMemory }).toPromise();
+      const res: any = await this.http.post(environment.apiUrl + '/completion', { prompt, useMemory: this.crawlForm.value.useMemory }).toPromise();
       // Parse <think>...</think> from response
       const response: string = res.response || '';
       const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
