@@ -21,15 +21,23 @@
     </div>
   </div>
   <div class="chat-messages">
-    <div *ngFor="let msg of messages" [ngClass]="'msg-' + msg.sender.toLowerCase()">
+    <div
+      *ngFor="let msg of messages"
+      [ngClass]="'msg-' + msg.sender.toLowerCase()"
+    >
       <span class="msg-sender">{{ msg.sender }}:</span>
-      <span class="msg-text" *ngIf="msg.sender !== 'Assistant'">{{ msg.message }}</span>
-      <span class="msg-text msg-answer" *ngIf="msg.sender === 'Assistant'"
-        [innerHTML]="formatAssistantMessage(msg.message)"></span>
+      <span class="msg-text" *ngIf="msg.sender !== 'Assistant'">{{
+        msg.message
+      }}</span>
+      <span
+        class="msg-text msg-answer"
+        *ngIf="msg.sender === 'Assistant'"
+        [innerHTML]="formatAssistantMessage(msg.message)"
+      ></span>
       <span class="msg-time">{{ msg.time }}</span>
       <ng-container *ngIf="msg.sender === 'Assistant' && msg.thinking">
         <button class="think-toggle" (click)="toggleThinking(msg)">
-          {{ msg.showThinking ? 'Hide thinking' : 'Show thinking' }}
+          {{ msg.showThinking ? "Hide thinking" : "Show thinking" }}
         </button>
         <div *ngIf="msg.showThinking" class="msg-thinking">
           <pre>{{ msg.thinking }}</pre>
@@ -38,9 +46,22 @@
     </div>
   </div>
   <form class="chat-input-row" (ngSubmit)="sendMessage()">
-    <input type="text" [(ngModel)]="userInput" name="userInput" [disabled]="loading" placeholder="Type your message..."
-      autocomplete="off" class="chat-input" />
-    <button type="submit" [disabled]="loading || !userInput.trim()" class="chat-send-btn">Send</button>
+    <input
+      type="text"
+      [(ngModel)]="userInput"
+      name="userInput"
+      [disabled]="loading"
+      placeholder="Type your message..."
+      autocomplete="off"
+      class="chat-input"
+    />
+    <button
+      type="submit"
+      [disabled]="loading || !userInput.trim()"
+      class="chat-send-btn"
+    >
+      Send
+    </button>
   </form>
   <div *ngIf="loading" class="chat-loading">Assistant is typing...</div>
 </div>

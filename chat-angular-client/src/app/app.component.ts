@@ -25,31 +25,44 @@ export class AppComponent {
   messages: ChatMessage[] = [];
   userInput = '';
   loading = false;
-  crawlForm
+  crawlForm;
 
-  constructor(private http: HttpClient, private sanitizer: DomSanitizer, private fb: FormBuilder) {
+  constructor(
+    private http: HttpClient,
+    private sanitizer: DomSanitizer,
+    private fb: FormBuilder,
+  ) {
     this.crawlForm = fb.group({
       url: fb.nonNullable.control('', Validators.required),
       xpath: fb.nonNullable.control('', Validators.required),
       authentication: [''],
-      useMemory: fb.nonNullable.control(true)
-    })
+      useMemory: fb.nonNullable.control(true),
+    });
   }
 
   async sendMessage() {
     const input = this.userInput.trim();
     if (!input) return;
-    this.messages.push({ sender: 'User', message: input, time: new Date().toLocaleTimeString() });
+    this.messages.push({
+      sender: 'User',
+      message: input,
+      time: new Date().toLocaleTimeString(),
+    });
     this.userInput = '';
     this.loading = true;
     try {
       // Build conversation context (all messages, including the new one)
       const history = this.messages
-        .map(m => `${m.sender}: ${m.message}`)
+        .map((m) => `${m.sender}: ${m.message}`)
         .join('\n');
       // Do NOT append User: ${input} again!
       const prompt = `${history}\nAssistant:`;
-      const res: any = await this.http.post(environment.apiUrl + '/completion', { prompt, useMemory: this.crawlForm.value.useMemory }).toPromise();
+      const res: any = await this.http
+        .post(environment.apiUrl + '/completion', {
+          prompt,
+          useMemory: this.crawlForm.value.useMemory,
+        })
+        .toPromise();
       // Parse <think>...</think> from response
       const response: string = res.response || '';
       const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
@@ -64,10 +77,14 @@ export class AppComponent {
         message: answer,
         time: new Date().toLocaleTimeString(),
         thinking: thinking,
-        showThinking: false
+        showThinking: false,
       });
     } catch (err) {
-      this.messages.push({ sender: 'System', message: 'Error: Could not get response from backend.', time: new Date().toLocaleTimeString() });
+      this.messages.push({
+        sender: 'System',
+        message: 'Error: Could not get response from backend.',
+        time: new Date().toLocaleTimeString(),
+      });
     } finally {
       this.loading = false;
     }
@@ -80,12 +97,18 @@ export class AppComponent {
   formatAssistantMessage(msg: string): SafeHtml {
     if (!msg) return '';
     // Replace code blocks ```lang\n...```
-    let html = msg.replace(/```([a-zA-Z0-9]*)\n([\s\S]*?)```/g, (match, lang, code) => {
-      const language = lang ? `language-${lang}` : '';
-      return `<pre class="msg-code"><code class="${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
-    });
+    let html = msg.replace(
+      /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g,
+      (match, lang, code) => {
+        const language = lang ? `language-${lang}` : '';
+        return `<pre class="msg-code"><code class="${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+      },
+    );
     // Replace inline code `...`
-    html = html.replace(/`([^`]+)`/g, '<code class="msg-inline-code">$1</code>');
+    html = html.replace(
+      /`([^`]+)`/g,
+      '<code class="msg-inline-code">$1</code>',
+    );
     // Replace **bold** with <b>bold</b>
     html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
     // Replace newlines with <br> (but not inside <pre> blocks)
