@@ -18,7 +18,7 @@ public class Crawler
     private readonly string _xpath;
     private readonly string? _authToken;
     private readonly string? _outputDirectory;
-    private readonly int _maxConcurrency = 8;
+    private const int _maxConcurrency = 8;
     private readonly JsonSerializerOptions _options = new() { WriteIndented = true };
 
     public Crawler(
