@@ -51,7 +51,17 @@ public class OllamaService : ILLMService
         CancellationToken cancellationToken = default
     )
     {
-        var response = await _ollamaClient.EmbedAsync(text, cancellationToken);
-        return response.Embeddings.First();
+        try
+        {
+            var response = await _ollamaClient.EmbedAsync(text, cancellationToken);
+            return response.Embeddings.First();
+        }
+        catch (HttpRequestException e)
+        {
+            await Console.Error.WriteLineAsync(
+                $"Error: {e.Message}{Environment.NewLine}Http Error: {e.HttpRequestError}"
+            );
+            throw;
+        }
     }
 }

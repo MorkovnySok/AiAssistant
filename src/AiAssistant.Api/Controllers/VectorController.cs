@@ -23,66 +23,29 @@ public class VectorController(
     )
     {
         var chunks = chunker.ChunkText(request.Text).ToList();
-
-        var channel = Channel.CreateUnbounded<(string Chunk, int Index)>();
-        var writer = channel.Writer;
-
-        _ = Task.Run(
-            async () =>
-            {
-                try
-                {
-                    foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
-                    {
-                        await writer.WriteAsync((chunk, index), cancellationToken);
-                    }
-                }
-                finally
-                {
-                    writer.Complete();
-                }
-            },
-            cancellationToken
-        );
-
         var chunkId = request.Id ?? Guid.NewGuid().ToString();
-        var workers = Enumerable
-            .Range(0, Environment.ProcessorCount)
-            .Select(_ =>
-                Task.Run(
-                    async () =>
-                    {
-                        var reader = channel.Reader;
-                        while (await reader.WaitToReadAsync(cancellationToken))
-                        {
-                            while (reader.TryRead(out var item))
-                            {
-                                var (chunk, index) = item;
 
-                                var embeddings = await llmService.GenerateEmbeddingsAsync(
-                                    chunk,
-                                    cancellationToken
-                                );
-                                await vectorStore.StoreVectorAsync(
-                                    chunkId,
-                                    embeddings,
-                                    new Dictionary<string, string>
-                                    {
-                                        { "text", chunk },
-                                        { "parentId", request.Id ?? "" },
-                                        { "chunkIndex", index.ToString() },
-                                    },
-                                    cancellationToken
-                                );
-                            }
-                        }
-                    },
-                    cancellationToken
-                )
-            )
-            .ToList();
+        for (var index = 0; index < chunks.Count; index++)
+        {
+            var chunk = chunks[index];
+            if (index % 10 == 0)
+            {
+                logger.LogInformation($"Storing {chunks.Count} chunk {index}/{chunks.Count}");
+            }
 
-        await Task.WhenAll(workers);
+            var embeddings = await llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
+            await vectorStore.StoreVectorAsync(
+                chunkId,
+                embeddings,
+                new Dictionary<string, string>
+                {
+                    { "text", chunk },
+                    { "parentId", request.Id ?? "" },
+                    { "chunkIndex", index.ToString() },
+                },
+                cancellationToken
+            );
+        }
 
         return Ok(new { Chunks = chunks.Count });
     }
@@ -114,7 +77,6 @@ public class VectorController(
         foreach (var result in results)
         {
             sw.Restart();
-            logger.LogInformation($"Storing url {i}/{results.Count}: {result.Url}");
             await StoreVector(
                 new StoreVectorRequest() { Text = result.Content },
                 CancellationToken.None
