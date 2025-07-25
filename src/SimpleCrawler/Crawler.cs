@@ -1,7 +1,9 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using HtmlAgilityPack;
 
 namespace SimpleCrawler;
@@ -11,11 +13,13 @@ public class Crawler
     private readonly HttpClient _httpClient;
     private readonly Uri _baseUri;
 
-    private readonly HashSet<string> _visitedUrls = [];
-    private readonly List<ParseResult> _documents = [];
+    private readonly ConcurrentDictionary<string, bool> _visitedUrls = new();
+    private readonly ConcurrentBag<ParseResult> _documents = new();
     private readonly string _xpath;
     private readonly string? _authToken;
     private readonly string? _outputDirectory;
+    private readonly int _maxConcurrency = 8;
+    private readonly JsonSerializerOptions _options = new() { WriteIndented = true };
 
     public Crawler(
         string baseUrl,
@@ -47,74 +51,112 @@ public class Crawler
 
     public async Task<List<ParseResult>> CrawlAsync()
     {
-        await CrawlPageAsync(_baseUri.AbsoluteUri);
+        var channel = Channel.CreateUnbounded<string>();
+        var writer = channel.Writer;
+        var reader = channel.Reader;
+
+        var activeCount = 0;
+
+        void Increment() => Interlocked.Increment(ref activeCount);
+        void Decrement()
+        {
+            if (Interlocked.Decrement(ref activeCount) == 0)
+            {
+                writer.Complete(); // No more work left — signal end
+            }
+        }
+
+        Increment(); // Seed URL is one active job
+        await writer.WriteAsync(_baseUri.AbsoluteUri);
+
+        var workers = Enumerable
+            .Range(0, _maxConcurrency)
+            .Select(workerId =>
+                Task.Run(async () =>
+                {
+                    while (await reader.WaitToReadAsync())
+                    {
+                        while (reader.TryRead(out var url))
+                        {
+                            try
+                            {
+                                if (!_visitedUrls.TryAdd(url, true))
+                                {
+                                    Decrement();
+                                    continue;
+                                }
+
+                                Console.WriteLine($"[Worker {workerId + 1}] Crawling: {url}");
+                                var request = CreateRequest(url);
+                                var response = await _httpClient.SendAsync(request);
+                                response.EnsureSuccessStatusCode();
+
+                                var html = await response.Content.ReadAsStringAsync();
+                                var doc = new HtmlDocument();
+                                doc.LoadHtml(html);
+
+                                var contentNode = doc.DocumentNode.SelectSingleNode(_xpath);
+                                if (contentNode == null)
+                                {
+                                    await Console.Error.WriteLineAsync(
+                                        "No content node found. Check your xPath."
+                                    );
+                                    Decrement();
+                                    continue;
+                                }
+
+                                _documents.Add(
+                                    new ParseResult
+                                    {
+                                        Url = url,
+                                        Content = contentNode.InnerText.Trim(),
+                                    }
+                                );
+
+                                var links = contentNode.SelectNodes("//a[@href]");
+                                if (links != null)
+                                {
+                                    foreach (var link in links)
+                                    {
+                                        var href = link.GetAttributeValue("href", "");
+                                        if (string.IsNullOrWhiteSpace(href))
+                                            continue;
+
+                                        var absoluteUrl = new Uri(_baseUri, href).AbsoluteUri;
+                                        if (
+                                            absoluteUrl.StartsWith(_baseUri.AbsoluteUri)
+                                            && !_visitedUrls.ContainsKey(absoluteUrl)
+                                            && !absoluteUrl.Contains('#')
+                                        )
+                                        {
+                                            Increment();
+                                            await writer.WriteAsync(absoluteUrl);
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error crawling {url}: {ex.Message}");
+                            }
+                            finally
+                            {
+                                Decrement(); // Job done for this URL
+                            }
+                        }
+                    }
+                })
+            )
+            .ToList();
+
+        await Task.WhenAll(workers);
+
         if (_outputDirectory != null)
         {
             await SaveResultsAsync();
         }
 
-        return _documents;
-    }
-
-    private async Task CrawlPageAsync(string url)
-    {
-        if (_visitedUrls.Contains(url))
-        {
-            return;
-        }
-
-        try
-        {
-            _visitedUrls.Add(url);
-            Console.WriteLine($"Crawling: {url}");
-            var request = CreateRequest(url);
-            Console.WriteLine($"Headers: " + await request.ToRawString());
-            var response = await _httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-
-            var html = await response.Content.ReadAsStringAsync();
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
-
-            var contentNode = doc.DocumentNode.SelectSingleNode(_xpath);
-            if (contentNode == null)
-            {
-                await Console.Error.WriteLineAsync("No content node found. Check your xPath.");
-                return;
-            }
-
-            var titleNode = doc.DocumentNode.SelectSingleNode("//title");
-            var title = titleNode?.InnerText.Trim() ?? url;
-
-            _documents.Add(new ParseResult { Url = url, Content = contentNode.InnerText.Trim() });
-
-            var links = contentNode.SelectNodes("//a[@href]");
-            if (links != null)
-            {
-                foreach (var link in links)
-                {
-                    var href = link.GetAttributeValue("href", "");
-                    if (string.IsNullOrEmpty(href))
-                    {
-                        continue;
-                    }
-
-                    var absoluteUrl = new Uri(_baseUri, href).AbsoluteUri;
-                    if (
-                        absoluteUrl.StartsWith(_baseUri.AbsoluteUri)
-                        && !_visitedUrls.Contains(absoluteUrl)
-                        && !absoluteUrl.Contains('#')
-                    )
-                    {
-                        await CrawlPageAsync(absoluteUrl);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error crawling {url}: {ex.Message}");
-        }
+        return _documents.ToList();
     }
 
     private HttpRequestMessage CreateRequest(string url)
@@ -156,9 +198,8 @@ public class Crawler
 
     private async Task SaveResultsAsync()
     {
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var json = JsonSerializer.Serialize(_documents, options);
-        var outputPath = Path.Combine(_outputDirectory, "crawler_results.json");
+        var json = JsonSerializer.Serialize(_documents, _options);
+        var outputPath = Path.Combine(_outputDirectory!, "crawler_results.json");
         await File.WriteAllTextAsync(outputPath, json);
         Console.WriteLine($"Results saved to {outputPath}");
     }

@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddLogging(x => x.AddConsole());
 
 var provider = builder.Configuration["Provider"];
 switch (provider?.ToLowerInvariant())
@@ -14,8 +15,7 @@ switch (provider?.ToLowerInvariant())
     case "openai":
         builder.Services.AddSingleton<ILLMService, OpenAiService>();
         break;
-    case "local"
-    or "ollama":
+    case "local" or "ollama":
     default:
         var ollamaService = await new OllamaBuilder(builder.Configuration).SetupOllamaService();
         builder.Services.AddSingleton<ILLMService>(ollamaService);
@@ -34,11 +34,9 @@ var corsOrigins = builder.Configuration.GetSection("CorsOrigins").Get<string[]>(
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowConfiguredOrigins",
-        policy => policy
-            .WithOrigins(corsOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
+    options.AddPolicy(
+        "AllowConfiguredOrigins",
+        policy => policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod()
     );
 });
 

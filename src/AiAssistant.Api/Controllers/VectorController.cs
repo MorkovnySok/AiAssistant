@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Threading.Channels;
 using AiAssistant.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using SimpleCrawler;
@@ -10,7 +12,8 @@ public class VectorController(
     ILLMService llmService,
     IVectorStore vectorStore,
     IChunker chunker,
-    IConfiguration config
+    IConfiguration config,
+    ILogger<VectorController> logger
 ) : ControllerBase
 {
     [HttpPost("store")]
@@ -20,21 +23,66 @@ public class VectorController(
     )
     {
         var chunks = chunker.ChunkText(request.Text).ToList();
-        foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
-        {
-            var embeddings = await llmService.GenerateEmbeddingsAsync(chunk, cancellationToken);
-            await vectorStore.StoreVectorAsync(
-                request.Id ?? Guid.NewGuid().ToString(), // or use a hash
-                embeddings,
-                new Dictionary<string, string>
+
+        var channel = Channel.CreateUnbounded<(string Chunk, int Index)>();
+        var writer = channel.Writer;
+
+        _ = Task.Run(
+            async () =>
+            {
+                try
                 {
-                    { "text", chunk },
-                    { "parentId", request.Id ?? "" },
-                    { "chunkIndex", index.ToString() },
-                },
-                cancellationToken
-            );
-        }
+                    foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
+                    {
+                        await writer.WriteAsync((chunk, index), cancellationToken);
+                    }
+                }
+                finally
+                {
+                    writer.Complete();
+                }
+            },
+            cancellationToken
+        );
+
+        var chunkId = request.Id ?? Guid.NewGuid().ToString();
+        var workers = Enumerable
+            .Range(0, Environment.ProcessorCount)
+            .Select(_ =>
+                Task.Run(
+                    async () =>
+                    {
+                        var reader = channel.Reader;
+                        while (await reader.WaitToReadAsync(cancellationToken))
+                        {
+                            while (reader.TryRead(out var item))
+                            {
+                                var (chunk, index) = item;
+
+                                var embeddings = await llmService.GenerateEmbeddingsAsync(
+                                    chunk,
+                                    cancellationToken
+                                );
+                                await vectorStore.StoreVectorAsync(
+                                    chunkId,
+                                    embeddings,
+                                    new Dictionary<string, string>
+                                    {
+                                        { "text", chunk },
+                                        { "parentId", request.Id ?? "" },
+                                        { "chunkIndex", index.ToString() },
+                                    },
+                                    cancellationToken
+                                );
+                            }
+                        }
+                    },
+                    cancellationToken
+                )
+            )
+            .ToList();
+
+        await Task.WhenAll(workers);
 
         return Ok(new { Chunks = chunks.Count });
     }
@@ -60,12 +108,20 @@ public class VectorController(
     {
         var crawler = new Crawler(request.Url, request.ContentXPath, request.AuthToken);
         var results = await crawler.CrawlAsync();
+        logger.LogInformation($"Crawled url: {request.Url} with pages: {results.Count}");
+        var sw = new Stopwatch();
+        var i = 1;
         foreach (var result in results)
         {
+            sw.Restart();
+            logger.LogInformation($"Storing url {i}/{results.Count}: {result.Url}");
             await StoreVector(
                 new StoreVectorRequest() { Text = result.Content },
                 CancellationToken.None
             );
+            sw.Stop();
+            logger.LogInformation($"Stored url: {result.Url} took {sw.ElapsedMilliseconds}ms");
+            i++;
         }
 
         return Ok();

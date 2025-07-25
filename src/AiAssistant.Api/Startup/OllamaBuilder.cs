@@ -31,20 +31,20 @@ public class OllamaBuilder(ConfigurationManager configuration)
             }
         }
 
-        await foreach (
-            var i in ollamaClient.GenerateAsync(
-                new GenerateRequest()
-                {
-                    Prompt =
-                        "This is a warmup request to start ollama, DO NOT think too much, just say 'Whad up'",
-                    Stream = false,
-                    Model = model,
-                }
-            )
-        )
-        {
-            Console.WriteLine("Warm up request generated: " + i!.Response);
-        }
+        // await foreach (
+        //     var i in ollamaClient.GenerateAsync(
+        //         new GenerateRequest()
+        //         {
+        //             Prompt =
+        //                 "This is a warmup request to start ollama, DO NOT think too much, just say 'Whad up'",
+        //             Stream = false,
+        //             Model = model,
+        //         }
+        //     )
+        // )
+        // {
+        //     Console.WriteLine("Warm up request generated: " + i!.Response);
+        // }
 
         return new OllamaService(model, ollamaServer);
     }
