@@ -18,7 +18,7 @@ public class Crawler
     private readonly string _xpath;
     private readonly string? _authToken;
     private readonly string? _outputDirectory;
-    private const int _maxConcurrency = 8;
+    private static readonly int _maxConcurrency = Environment.ProcessorCount;
     private readonly JsonSerializerOptions _options = new() { WriteIndented = true };
 
     public Crawler(
@@ -198,9 +198,27 @@ public class Crawler
 
     private async Task SaveResultsAsync()
     {
-        var json = JsonSerializer.Serialize(_documents, _options);
-        var outputPath = Path.Combine(_outputDirectory!, "crawler_results.json");
-        await File.WriteAllTextAsync(outputPath, json);
-        Console.WriteLine($"Results saved to {outputPath}");
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss");
+        var baseHost = _baseUri.Host.Replace(":", "_");
+        var rootFolderName = $"{timestamp}_{baseHost}";
+        var outputFolder = Path.Combine(_outputDirectory!, rootFolderName);
+        Directory.CreateDirectory(outputFolder);
+
+        foreach (var doc in _documents)
+        {
+            var relativePath = doc.Url.Replace(_baseUri.AbsoluteUri, "").TrimStart('/');
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                relativePath = "index";
+            }
+
+            var safeFilename = Uri.EscapeDataString(relativePath) + ".txt";
+            var filePath = Path.Combine(outputFolder, safeFilename);
+
+            var content = $"URL: {doc.Url}\n\nCONTENT:\n{doc.Content}";
+            await File.WriteAllTextAsync(filePath, content);
+        }
+
+        Console.WriteLine($"Saved {_documents.Count} files to {outputFolder}");
     }
 }
