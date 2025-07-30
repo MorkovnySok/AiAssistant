@@ -18,6 +18,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleCrawler", "src\Simple
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleCrawler.Runner", "SimpleCrawler.Runner\SimpleCrawler.Runner.csproj", "{384034BD-1056-4B6C-95FB-2D9FEC89DB9A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GptreeParser", "GptreeParser\GptreeParser.csproj", "{E0D2A0C0-3025-4D58-990F-FAC50509CFC2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GptreeParserTests", "Tests\GptreeParserTests\GptreeParserTests.csproj", "{911AB9D4-9A85-4C8A-9AD8-44785DD43194}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,5 +47,13 @@ Global
 		{384034BD-1056-4B6C-95FB-2D9FEC89DB9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{384034BD-1056-4B6C-95FB-2D9FEC89DB9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{384034BD-1056-4B6C-95FB-2D9FEC89DB9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0D2A0C0-3025-4D58-990F-FAC50509CFC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0D2A0C0-3025-4D58-990F-FAC50509CFC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0D2A0C0-3025-4D58-990F-FAC50509CFC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0D2A0C0-3025-4D58-990F-FAC50509CFC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{911AB9D4-9A85-4C8A-9AD8-44785DD43194}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{911AB9D4-9A85-4C8A-9AD8-44785DD43194}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{911AB9D4-9A85-4C8A-9AD8-44785DD43194}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{911AB9D4-9A85-4C8A-9AD8-44785DD43194}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

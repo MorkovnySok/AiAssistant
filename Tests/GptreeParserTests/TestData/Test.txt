@@ -1,0 +1,26 @@
+﻿# BEGIN FILE CONTENTS
+
+# File: configuration/UI/ClientAction/onConfirmAmendManualPeriodsView.js
+
+const { asdf } = require('asdf');
+
+module.exports = async function onConfirmAmendManualPeriodsView(input) {
+    asdf(input, this, a, b);
+};
+
+
+# END FILE CONTENTS
+
+
+# File: configuration/UI/ClientAction/createDataSourceEmptyRequest.js
+
+module.exports = function createDataSourceEmptyRequest() {
+    return {
+        data: {
+            criteria: {}
+        }
+    };
+};
+
+
+# END FILE CONTENTS
