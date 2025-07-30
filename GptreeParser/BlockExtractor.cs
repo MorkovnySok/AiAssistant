@@ -66,14 +66,23 @@ public class BlockExtractor
 
         static void WriteToFile(string outputBase, string relativePath, List<string> lines)
         {
-            relativePath = Path.ChangeExtension(relativePath, ".txt");
-            var outputPath = Path.Combine(outputBase, relativePath);
-            var directory = Path.GetDirectoryName(outputPath);
+            // Remove slashes and invalid chars to flatten the path
+            var flattenedName = relativePath
+                .Replace(Path.DirectorySeparatorChar, '_')
+                .Replace(Path.AltDirectorySeparatorChar, '_');
 
-            if (!Directory.Exists(directory))
+            // Remove any other invalid filename chars (optional but safe)
+            foreach (var c in Path.GetInvalidFileNameChars())
             {
-                Directory.CreateDirectory(directory!);
+                flattenedName = flattenedName.Replace(c, '_');
             }
+
+            // Always .txt extension
+            flattenedName = Path.ChangeExtension(flattenedName, ".txt");
+
+            var outputPath = Path.Combine(outputBase, flattenedName);
+
+            Directory.CreateDirectory(outputBase); // ensure output dir exists
 
             File.WriteAllLines(outputPath, lines, Encoding.UTF8);
             Console.WriteLine($"✓ Wrote: {outputPath}");

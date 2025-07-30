@@ -34,11 +34,11 @@ public class BlockExtractorTests : IDisposable
 
         var file1 = Path.Combine(
             outputDir,
-            @"configuration\UI\ClientAction\onConfirmAmendManualPeriodsView.txt"
+            @"configuration_UI_ClientAction_onConfirmAmendManualPeriodsView.txt"
         );
         var file2 = Path.Combine(
             outputDir,
-            @"configuration\UI\ClientAction\createDataSourceEmptyRequest.txt"
+            @"configuration_UI_ClientAction_createDataSourceEmptyRequest.txt"
         );
 
         Assert.True(File.Exists(file1), $"Expected file not found: {file1}");
