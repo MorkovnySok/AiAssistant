@@ -6,11 +6,10 @@ public class BlockExtractor
 {
     public void ExtractFiles(string[] args)
     {
-        // ==== Argument Handling ====
-        if (args.Length is < 1 or > 2)
+        if (args.Length is < 1 or > 3)
         {
-            Console.WriteLine("Usage: GptreeParser <inputFile> [outputFolder]");
-            Console.WriteLine("Example: GptreeParser C:\\big.txt C:\\output");
+            Console.WriteLine("Usage: GptreeParser <inputFile> [outputFolder] [--structured]");
+            Console.WriteLine("Example: GptreeParser C:\\big.txt C:\\output --structured");
             return;
         }
 
@@ -22,9 +21,12 @@ public class BlockExtractor
         }
 
         var outputBase =
-            args.Length == 2 ? args[1] : Path.Combine(Directory.GetCurrentDirectory(), "parsed");
+            args.Length >= 2 && !args[1].StartsWith("--")
+                ? args[1]
+                : Path.Combine(Directory.GetCurrentDirectory(), "parsed");
 
-        // ==== Parsing Logic ====
+        var structuredMode = args.Contains("--structured");
+
         using var reader = new StreamReader(inputFile);
         string? currentRelativePath = null;
         var buffer = new List<string>();
@@ -35,7 +37,7 @@ public class BlockExtractor
             {
                 if (currentRelativePath != null && buffer.Count > 0)
                 {
-                    WriteToFile(outputBase, currentRelativePath, buffer);
+                    WriteToFile(outputBase, currentRelativePath, buffer, structuredMode);
                 }
 
                 currentRelativePath = line.Substring("# File: ".Length).Trim();
@@ -45,7 +47,7 @@ public class BlockExtractor
             {
                 if (currentRelativePath != null && buffer.Count > 0)
                 {
-                    WriteToFile(outputBase, currentRelativePath, buffer);
+                    WriteToFile(outputBase, currentRelativePath, buffer, structuredMode);
                 }
 
                 currentRelativePath = null;
@@ -59,33 +61,51 @@ public class BlockExtractor
 
         if (currentRelativePath != null && buffer.Count > 0)
         {
-            WriteToFile(outputBase, currentRelativePath, buffer);
+            WriteToFile(outputBase, currentRelativePath, buffer, structuredMode);
         }
+    }
 
-        return;
+    private static void WriteToFile(
+        string outputBase,
+        string relativePath,
+        List<string> lines,
+        bool structured
+    )
+    {
+        var sanitizedName = SanitizePathToFilename(relativePath);
 
-        static void WriteToFile(string outputBase, string relativePath, List<string> lines)
+        if (structured)
         {
-            // Remove slashes and invalid chars to flatten the path
-            var flattenedName = relativePath
-                .Replace(Path.DirectorySeparatorChar, '_')
-                .Replace(Path.AltDirectorySeparatorChar, '_');
+            var fullDir = Path.Combine(outputBase, Path.GetDirectoryName(relativePath)!);
+            Directory.CreateDirectory(fullDir);
 
-            // Remove any other invalid filename chars (optional but safe)
-            foreach (var c in Path.GetInvalidFileNameChars())
-            {
-                flattenedName = flattenedName.Replace(c, '_');
-            }
+            var filename = $"{Path.GetFileNameWithoutExtension(relativePath)}_{sanitizedName}.txt";
+            var fullPath = Path.Combine(fullDir, filename);
 
-            // Always .txt extension
-            flattenedName = Path.ChangeExtension(flattenedName, ".txt");
-
-            var outputPath = Path.Combine(outputBase, flattenedName);
-
-            Directory.CreateDirectory(outputBase); // ensure output dir exists
-
-            File.WriteAllLines(outputPath, lines, Encoding.UTF8);
-            Console.WriteLine($"✓ Wrote: {outputPath}");
+            File.WriteAllLines(fullPath, lines, Encoding.UTF8);
+            Console.WriteLine($"✓ [structured] {fullPath}");
         }
+        else
+        {
+            var filename = $"{sanitizedName}.txt";
+            var fullPath = Path.Combine(outputBase, filename);
+
+            Directory.CreateDirectory(outputBase);
+            File.WriteAllLines(fullPath, lines, Encoding.UTF8);
+            Console.WriteLine($"✓ [flat] {fullPath}");
+        }
+    }
+
+    private static string SanitizePathToFilename(string path)
+    {
+        var flattened = path.Replace(Path.DirectorySeparatorChar, '_')
+            .Replace(Path.AltDirectorySeparatorChar, '_');
+
+        foreach (var c in Path.GetInvalidFileNameChars())
+        {
+            flattened = flattened.Replace(c, '_');
+        }
+
+        return Path.GetFileNameWithoutExtension(flattened);
     }
 }

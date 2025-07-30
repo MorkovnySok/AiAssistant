@@ -10,6 +10,46 @@ public class BlockExtractorTests : IDisposable
     );
 
     [Fact]
+    public void ExtractFiles_StructuredMode_CreatesExpectedFiles()
+    {
+        // Arrange
+        var inputPath = Path.Combine("TestData", "Test.txt");
+
+        if (Directory.Exists(_outputDir))
+            Directory.Delete(_outputDir, recursive: true);
+
+        var args = new[] { inputPath, _outputDir, "--structured" };
+        var extractor = new BlockExtractor();
+
+        // Act
+        extractor.ExtractFiles(args);
+
+        // Assert
+        var outputFiles = Directory.GetFiles(_outputDir, "*.txt", SearchOption.AllDirectories);
+        Assert.Equal(2, outputFiles.Length);
+
+        // Construct expected file paths (structured)
+        var file1Dir = Path.Combine(_outputDir, @"configuration\UI\ClientAction");
+        var file1Name =
+            "onConfirmAmendManualPeriodsView_configuration_UI_ClientAction_onConfirmAmendManualPeriodsView.txt";
+        var file1Path = Path.Combine(file1Dir, file1Name);
+
+        var file2Dir = Path.Combine(_outputDir, @"configuration\UI\ClientAction");
+        var file2Name =
+            "createDataSourceEmptyRequest_configuration_UI_ClientAction_createDataSourceEmptyRequest.txt";
+        var file2Path = Path.Combine(file2Dir, file2Name);
+
+        Assert.True(File.Exists(file1Path), $"Expected file not found: {file1Path}");
+        Assert.True(File.Exists(file2Path), $"Expected file not found: {file2Path}");
+
+        var content1 = File.ReadAllText(file1Path);
+        var content2 = File.ReadAllText(file2Path);
+
+        Assert.Contains("onConfirmAmendManualPeriodsView", content1);
+        Assert.Contains("createDataSourceEmptyRequest", content2);
+    }
+
+    [Fact]
     public void ExtractFiles_ParsesBlocksCorrectly_AndCreatesTxtFiles()
     {
         // Arrange
