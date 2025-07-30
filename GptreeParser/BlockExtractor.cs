@@ -72,27 +72,35 @@ public class BlockExtractor
         bool structured
     )
     {
-        var sanitizedName = SanitizePathToFilename(relativePath);
-
-        if (structured)
+        try
         {
-            var fullDir = Path.Combine(outputBase, Path.GetDirectoryName(relativePath)!);
-            Directory.CreateDirectory(fullDir);
+            var sanitizedName = SanitizePathToFilename(relativePath);
 
-            var filename = $"{Path.GetFileNameWithoutExtension(relativePath)}_{sanitizedName}.txt";
-            var fullPath = Path.Combine(fullDir, filename);
+            if (structured)
+            {
+                var fullDir = Path.Combine(outputBase, Path.GetDirectoryName(relativePath)!);
+                Directory.CreateDirectory(fullDir);
 
-            File.WriteAllLines(fullPath, lines, Encoding.UTF8);
-            Console.WriteLine($"✓ [structured] {fullPath}");
+                var filename =
+                    $"{Path.GetFileNameWithoutExtension(relativePath)}_{sanitizedName}.txt";
+                var fullPath = Path.Combine(fullDir, filename);
+
+                File.WriteAllLines(fullPath, lines, Encoding.UTF8);
+                Console.WriteLine($"✓ [structured] {fullPath}");
+            }
+            else
+            {
+                var filename = $"{sanitizedName}.txt";
+                var fullPath = Path.Combine(outputBase, filename);
+
+                Directory.CreateDirectory(outputBase);
+                File.WriteAllLines(fullPath, lines, Encoding.UTF8);
+                Console.WriteLine($"✓ [flat] {fullPath}");
+            }
         }
-        else
+        catch (Exception e)
         {
-            var filename = $"{sanitizedName}.txt";
-            var fullPath = Path.Combine(outputBase, filename);
-
-            Directory.CreateDirectory(outputBase);
-            File.WriteAllLines(fullPath, lines, Encoding.UTF8);
-            Console.WriteLine($"✓ [flat] {fullPath}");
+            Console.WriteLine(e.Message);
         }
     }
 
