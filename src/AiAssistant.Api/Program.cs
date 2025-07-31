@@ -15,7 +15,8 @@ switch (provider?.ToLowerInvariant())
     case "openai":
         builder.Services.AddSingleton<ILLMService, OpenAiService>();
         break;
-    case "local" or "ollama":
+    case "local"
+    or "ollama":
     default:
         var ollamaService = await new OllamaBuilder(builder.Configuration).SetupOllamaService();
         builder.Services.AddSingleton<ILLMService>(ollamaService);

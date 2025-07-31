@@ -20,12 +20,16 @@ public class Crawler
     private readonly string? _outputDirectory;
     private static readonly int _maxConcurrency = Environment.ProcessorCount;
     private readonly JsonSerializerOptions _options = new() { WriteIndented = true };
+    private readonly bool _verbose;
+    private readonly bool _singleFileOutput;
 
     public Crawler(
         string baseUrl,
         string xpath,
         string? authToken = null,
-        string? outputDirectory = null
+        string? outputDirectory = null,
+        bool? verbose = false,
+        bool? singleFileOutput = false
     )
     {
         _httpClient = new HttpClient(
@@ -47,6 +51,9 @@ public class Crawler
         {
             Directory.CreateDirectory(_outputDirectory);
         }
+
+        _verbose = verbose.GetValueOrDefault();
+        _singleFileOutput = singleFileOutput.GetValueOrDefault();
     }
 
     public async Task<List<ParseResult>> CrawlAsync()
@@ -58,6 +65,7 @@ public class Crawler
         var activeCount = 0;
 
         void Increment() => Interlocked.Increment(ref activeCount);
+
         void Decrement()
         {
             if (Interlocked.Decrement(ref activeCount) == 0)
@@ -86,7 +94,11 @@ public class Crawler
                                     continue;
                                 }
 
-                                Console.WriteLine($"[Worker {workerId + 1}] Crawling: {url}");
+                                if (_verbose)
+                                {
+                                    Console.WriteLine($"[Worker {workerId + 1}] Crawling: {url}");
+                                }
+
                                 var request = CreateRequest(url);
                                 var response = await _httpClient.SendAsync(request);
                                 response.EnsureSuccessStatusCode();
@@ -149,6 +161,12 @@ public class Crawler
             )
             .ToList();
 
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+        while (await timer.WaitForNextTickAsync())
+        {
+            Console.WriteLine($"Discovered {_documents.Count} documents");
+        }
+
         await Task.WhenAll(workers);
 
         if (_outputDirectory != null)
@@ -173,6 +191,7 @@ public class Crawler
         {
             SetAuthorizationHeader(request, _authToken);
         }
+
         return request;
     }
 
@@ -203,6 +222,7 @@ public class Crawler
         var rootFolderName = $"{timestamp}_{baseHost}";
         var outputFolder = Path.Combine(_outputDirectory!, rootFolderName);
         Directory.CreateDirectory(outputFolder);
+        var singleFileBuilder = new StringBuilder();
 
         foreach (var doc in _documents)
         {
@@ -216,7 +236,22 @@ public class Crawler
             var filePath = Path.Combine(outputFolder, safeFilename);
 
             var content = $"URL: {doc.Url}\n\nCONTENT:\n{doc.Content}";
-            await File.WriteAllTextAsync(filePath, content);
+            if (_singleFileOutput)
+            {
+                singleFileBuilder.AppendLine(content);
+            }
+            else
+            {
+                await File.WriteAllTextAsync(filePath, content);
+            }
+        }
+
+        if (_singleFileOutput)
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(outputFolder, "result.txt"),
+                singleFileBuilder.ToString()
+            );
         }
 
         Console.WriteLine($"Saved {_documents.Count} files to {outputFolder}");

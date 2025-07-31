@@ -12,7 +12,9 @@ var crawler = new Crawler(
     options.BaseUrl,
     options.ContentXPath,
     options.AuthToken,
-    options.OutputDir
+    options.OutputDir,
+    options.Verbose,
+    options.SingleFileOutput
 );
 await crawler.CrawlAsync();
 
@@ -34,4 +36,15 @@ internal class Options
 
     [Option('o', "output", Required = true, HelpText = "Output file")]
     public required string OutputDir { get; set; }
+
+    [Option('v', "verbose", Required = false, HelpText = "Add verbose logging")]
+    public bool Verbose { get; set; }
+
+    [Option(
+        's',
+        "single-file",
+        Required = false,
+        HelpText = "Produce all the crawling results as a single file"
+    )]
+    public bool SingleFileOutput { get; set; }
 }
