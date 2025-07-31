@@ -18,8 +18,8 @@ public class Crawler
     private readonly string _xpath;
     private readonly string? _authToken;
     private readonly string? _outputDirectory;
+    private readonly string? _linksXpath;
     private static readonly int _maxConcurrency = Environment.ProcessorCount;
-    private readonly JsonSerializerOptions _options = new() { WriteIndented = true };
     private readonly bool _verbose;
     private readonly bool _singleFileOutput;
 
@@ -29,7 +29,8 @@ public class Crawler
         string? authToken = null,
         string? outputDirectory = null,
         bool? verbose = false,
-        bool? singleFileOutput = false
+        bool? singleFileOutput = false,
+        string? linksXpath = null
     )
     {
         _httpClient = new HttpClient(
@@ -46,6 +47,7 @@ public class Crawler
         _xpath = xpath;
         _authToken = authToken;
         _outputDirectory = outputDirectory;
+        _linksXpath = linksXpath;
 
         if (_outputDirectory != null && !Directory.Exists(_outputDirectory))
         {
@@ -73,13 +75,13 @@ public class Crawler
                 writer.Complete(); // No more work left — signal end
             }
         }
-        
+
         var progressTimer = new System.Timers.Timer(3000);
         var count = activeCount;
-        progressTimer.Elapsed += (_, _) => 
+        progressTimer.Elapsed += (_, _) =>
             Console.WriteLine($"Discovered {_documents.Count} documents, Active: {count}");
         progressTimer.Start();
-        
+
         Increment(); // Seed URL is one active job
         await writer.WriteAsync(_baseUri.AbsoluteUri);
 
@@ -131,25 +133,36 @@ public class Crawler
                                     }
                                 );
 
-                                var links = contentNode.SelectNodes("//a[@href]");
-                                if (links != null)
-                                {
-                                    foreach (var link in links)
-                                    {
-                                        var href = link.GetAttributeValue("href", "");
-                                        if (string.IsNullOrWhiteSpace(href))
-                                            continue;
+                                const string aTag = "//a[@href]";
+                                var links =
+                                    _linksXpath != null
+                                        ? doc
+                                            .DocumentNode.SelectSingleNode(_linksXpath)
+                                            ?.SelectNodes(aTag)
+                                        : contentNode.SelectNodes(aTag);
 
-                                        var absoluteUrl = new Uri(_baseUri, href).AbsoluteUri;
-                                        if (
-                                            absoluteUrl.StartsWith(_baseUri.AbsoluteUri)
-                                            && !_visitedUrls.ContainsKey(absoluteUrl)
-                                            && !absoluteUrl.Contains('#')
-                                        )
-                                        {
-                                            Increment();
-                                            await writer.WriteAsync(absoluteUrl);
-                                        }
+                                if (links == null)
+                                {
+                                    continue;
+                                }
+
+                                foreach (var link in links)
+                                {
+                                    var href = link.GetAttributeValue("href", "");
+                                    if (string.IsNullOrWhiteSpace(href))
+                                    {
+                                        continue;
+                                    }
+
+                                    var absoluteUrl = new Uri(_baseUri, href).AbsoluteUri;
+                                    if (
+                                        absoluteUrl.StartsWith(_baseUri.AbsoluteUri)
+                                        && !_visitedUrls.ContainsKey(absoluteUrl)
+                                        && !absoluteUrl.Contains('#')
+                                    )
+                                    {
+                                        Increment();
+                                        await writer.WriteAsync(absoluteUrl);
                                     }
                                 }
                             }

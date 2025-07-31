@@ -14,7 +14,8 @@ var crawler = new Crawler(
     options.AuthToken,
     options.OutputDir,
     options.Verbose,
-    options.SingleFileOutput
+    options.SingleFileOutput,
+    options.LinksXPath
 );
 await crawler.CrawlAsync();
 
@@ -32,7 +33,7 @@ internal class Options
         Required = false,
         HelpText = "Authentication token or 'login:password' for basic auth"
     )]
-    public required string AuthToken { get; set; }
+    public string? AuthToken { get; set; }
 
     [Option('o', "output", Required = true, HelpText = "Output file")]
     public required string OutputDir { get; set; }
@@ -47,4 +48,11 @@ internal class Options
         HelpText = "Produce all the crawling results as a single file"
     )]
     public bool SingleFileOutput { get; set; }
+
+    [Option(
+        "links-xpath",
+        Required = false,
+        HelpText = "Xpath to search links to parse (specify if you don't want to parse links from the content path)"
+    )]
+    public string? LinksXPath { get; set; }
 }
