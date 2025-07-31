@@ -249,10 +249,12 @@ public class Crawler
             var safeFilename = Uri.EscapeDataString(relativePath) + ".txt";
             var filePath = Path.Combine(outputFolder, safeFilename);
 
-            var content = $"URL: {doc.Url}\n\nCONTENT:\n{doc.Content}";
+            var content = $"# URL: {doc.Url}\n\n# CONTENT:\n{doc.Content}";
             if (_singleFileOutput)
             {
                 singleFileBuilder.AppendLine(content);
+                singleFileBuilder.AppendLine(Environment.NewLine);
+                singleFileBuilder.AppendLine(Environment.NewLine);
             }
             else
             {
