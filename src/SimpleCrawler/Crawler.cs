@@ -73,7 +73,13 @@ public class Crawler
                 writer.Complete(); // No more work left — signal end
             }
         }
-
+        
+        var progressTimer = new System.Timers.Timer(3000);
+        var count = activeCount;
+        progressTimer.Elapsed += (_, _) => 
+            Console.WriteLine($"Discovered {_documents.Count} documents, Active: {count}");
+        progressTimer.Start();
+        
         Increment(); // Seed URL is one active job
         await writer.WriteAsync(_baseUri.AbsoluteUri);
 
@@ -161,13 +167,8 @@ public class Crawler
             )
             .ToList();
 
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
-        while (await timer.WaitForNextTickAsync())
-        {
-            Console.WriteLine($"Discovered {_documents.Count} documents");
-        }
-
         await Task.WhenAll(workers);
+        progressTimer.Stop();
 
         if (_outputDirectory != null)
         {
