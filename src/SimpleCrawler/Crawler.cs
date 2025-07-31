@@ -129,7 +129,7 @@ public class Crawler
                                     new ParseResult
                                     {
                                         Url = url,
-                                        Content = contentNode.InnerText.Trim(),
+                                        Content = contentNode.InnerHtml,
                                     }
                                 );
 
